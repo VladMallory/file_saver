@@ -1,10 +1,12 @@
 package main
 
 import (
+	"context"
 	"log"
 	"os"
+	"time"
 
-	archivecli "saveFile/internal/archive/adapter/inbound"
+	archiveinboud "saveFile/internal/archive/adapter/inbound"
 	"saveFile/internal/archive/adapter/outbound/archiveformat/sevenzip"
 	patharchive "saveFile/internal/archive/adapter/outbound/path"
 	archiveusecase "saveFile/internal/archive/service"
@@ -39,7 +41,7 @@ func main() {
 
 type app struct {
 	log            *zap.Logger
-	cliHandler     archivecli.Handler
+	cliHandler     archiveinboud.Handler
 	deliveryClient deliveryusecase.DeliveryService
 }
 
@@ -63,7 +65,7 @@ func new() (app, error) {
 	pathArchiveClient := patharchive.NewPathProvider(log)
 	sevenzipClient := sevenzip.NewArchiver(log)
 	archiveClient := archiveusecase.NewArchiveService(log, pathArchiveClient, sevenzipClient)
-	cliHandler := archivecli.NewHandler(log, archiveClient)
+	cliHandler := archiveinboud.NewHandler(log, archiveClient)
 
 	//===доставка===
 	telegramClient, err := deliverytelegram.NewTelegramSender(log, cfg.TelegramToken, cfg.TelegramChatID)
@@ -96,5 +98,11 @@ func (a app) run() error {
 		return err
 	}
 
-	return nil
+	ctx := context.Background()
+
+	go a.runWorker(ctx, 1*time.Minute)
+
+	select {}
+
+	// return nil
 }

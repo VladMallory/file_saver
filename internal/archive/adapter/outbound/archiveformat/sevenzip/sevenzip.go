@@ -1,6 +1,7 @@
 package sevenzip
 
 import (
+	"errors"
 	"fmt"
 	"os/exec"
 
@@ -45,7 +46,17 @@ func (a Archiver) Run(paths []string) (string, error) {
 	cmd := exec.Command(a.bin, args...)
 
 	if outBytes, err := cmd.CombinedOutput(); err != nil {
-		return "", fmt.Errorf("%w: %s", err, outBytes)
+		// 7z возвращает exit code 1 при WARNING (нет файлов)
+		// Это не критично — архив создаётся, просто пустой
+		var exitErr *exec.ExitError
+		if errors.As(err, &exitErr) && exitErr.ExitCode() == 1 {
+			a.log.Warn(
+				"7z завершился с предупреждением",
+				zap.ByteString("output", outBytes),
+			)
+		} else {
+			return "", fmt.Errorf("%w: %s", err, outBytes)
+		}
 	}
 
 	return outPath, nil

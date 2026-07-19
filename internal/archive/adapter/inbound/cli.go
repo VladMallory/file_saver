@@ -1,4 +1,4 @@
-package archivecli
+package archiveinboud
 
 import (
 	"flag"

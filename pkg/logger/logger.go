@@ -15,7 +15,7 @@ func New(cfg Config) (*zap.Logger, error) {
 	var zapConfig zap.Config
 	var isJSON bool
 
-	if cfg.Env == "json" || cfg.Env == "prod" {
+	if cfg.Env == "json" {
 		zapConfig = zap.NewProductionConfig()
 
 		// Настройка формата времени

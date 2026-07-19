@@ -1,0 +1,12 @@
+services:
+  save-file:
+    build: .
+    container_name: save-file
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - /:/host:ro
+      - ./path.txt:/app/path.txt:ro
+    cap_add:
+      - SYS_ADMIN
