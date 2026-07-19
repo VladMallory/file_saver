@@ -100,7 +100,7 @@ func (a app) run() error {
 
 	ctx := context.Background()
 
-	go a.runWorker(ctx, 1*time.Minute)
+	go a.runWorker(ctx, 24*time.Hour)
 
 	select {}
 
