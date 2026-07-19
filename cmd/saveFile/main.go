@@ -2,11 +2,16 @@ package main
 
 import (
 	"log"
+	"os"
 
+	archivecli "saveFile/internal/archive/adapter/inbound"
 	"saveFile/internal/archive/adapter/outbound/archiveformat/sevenzip"
 	patharchive "saveFile/internal/archive/adapter/outbound/path"
-	archivecsv "saveFile/internal/archive/service"
+	archiveusecase "saveFile/internal/archive/service"
 	"saveFile/internal/config"
+	deliverytelegram "saveFile/internal/deliveryArchive/adapter"
+	delivery "saveFile/internal/deliveryArchive/domain"
+	deliveryusecase "saveFile/internal/deliveryArchive/service"
 	"saveFile/pkg/logger"
 
 	"go.uber.org/zap"
@@ -21,17 +26,21 @@ func main() {
 	// Сбрасываем буфер логов перед самым выходом из программы.
 	// Так как логгер теперь живет внутри app, вызываем Sync через поле структуры.
 	defer func() {
-		if app.logger != nil {
-			_ = app.logger.Sync()
+		if app.log != nil {
+			_ = app.log.Sync()
 		}
 	}()
 
-	app.run()
+	err = app.run()
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
 type app struct {
-	logger        *zap.Logger
-	archiveClient archivecsv.ArchiveService
+	log            *zap.Logger
+	cliHandler     archivecli.Handler
+	deliveryClient deliveryusecase.DeliveryService
 }
 
 func new() (app, error) {
@@ -50,26 +59,42 @@ func new() (app, error) {
 		return app{}, err
 	}
 
-	log.Info("приложение работает")
-
 	// ===архивация===
 	pathArchiveClient := patharchive.NewPathProvider(log)
-
 	sevenzipClient := sevenzip.NewArchiver(log)
-
-	archiveClient := archivecsv.NewArchiveService(log, pathArchiveClient, sevenzipClient)
+	archiveClient := archiveusecase.NewArchiveService(log, pathArchiveClient, sevenzipClient)
+	cliHandler := archivecli.NewHandler(log, archiveClient)
 
 	//===доставка===
+	telegramClient, err := deliverytelegram.NewTelegramSender(log, cfg.TelegramToken, cfg.TelegramChatID)
+	if err != nil {
+		return app{}, err
+	}
 
+	deliveryClient := deliveryusecase.NewDeliveryService(log, telegramClient)
+
+	log.Info("приложение собралось")
 	return app{
-		logger:        log,
-		archiveClient: archiveClient,
+		log:            log,
+		cliHandler:     cliHandler,
+		deliveryClient: deliveryClient,
 	}, nil
 }
 
-func (a app) run() {
-	err := a.archiveClient.Run()
+func (a app) run() error {
+	a.log.Info("приложение запускается")
+	err := a.cliHandler.Execute(os.Args[1:])
 	if err != nil {
-		return
+		return err
 	}
+
+	err = a.deliveryClient.Deliver(delivery.FileItem{
+		Path: "backup.7z",
+		Name: "backup.7z",
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

@@ -26,11 +26,6 @@ func (a Archiver) Run(paths []string) (string, error) {
 		return "", archivecore.ErrNoPaths
 	}
 
-	// outPath := filepath.Join(
-	// 	filepath.Dir(paths[0]),
-	// 	"archive.7z",
-	// )
-
 	outPath := "backup.7z"
 
 	args := []string{

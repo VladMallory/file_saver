@@ -63,6 +63,11 @@ func (p PathProvider) GetPath() (result []string, err error) {
 		return nil, err
 	}
 
+	p.log.Info(
+		"файл успешно прочитан",
+		zap.Int("lines", len(result)),
+	)
+
 	return result, nil
 }
 

@@ -1,4 +1,4 @@
-package archivecsv
+package archiveusecase
 
 import (
 	archivecore "saveFile/internal/archive/domain"
