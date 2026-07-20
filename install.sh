@@ -7,7 +7,7 @@ FINAL_NAME="file_saver"
 # Определяем архитектуру процессора (x86_64 или ARM)
 ARCH=$(uname -m)
 case $ARCH in
-    x86_64)  BINARY_NAME="file_saver-linux-amd64" ;;
+    x86_64) BINARY_NAME="saveFile-linux-amd64" ;;
     aarch64|arm64) BINARY_NAME="file_saver-linux-arm64" ;;
     *) echo "Ошибка: архитектура $ARCH не поддерживается"; exit 1 ;;
 esac

@@ -49,8 +49,8 @@ linters:
     - nlreturn
     - paralleltest
     - perfsprint
-  disable:
     - errcheck
+  disable:
     - containedctx
     - depguard
     - dogsled

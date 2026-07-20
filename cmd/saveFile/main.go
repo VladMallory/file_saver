@@ -3,57 +3,44 @@ package main
 import (
 	"context"
 	"log"
-	"os"
-	"saveFile/internal/archive/adapter/outbound/archiveformat/sevenzip"
+	"os/signal"
 	"saveFile/internal/config"
 	"saveFile/pkg/logger"
+	"syscall"
 	"time"
 
-	archiveinboud "saveFile/internal/archive/adapter/inbound"
-
-	patharchive "saveFile/internal/archive/adapter/outbound/path"
-	archiveusecase "saveFile/internal/archive/service"
-
-	deliverytelegram "saveFile/internal/deliveryArchive/adapter"
+	deliverytelegram "saveFile/internal/deliveryArchive/adapter/outbound"
 	delivery "saveFile/internal/deliveryArchive/domain"
 	deliveryusecase "saveFile/internal/deliveryArchive/service"
 
 	"go.uber.org/zap"
 )
 
+type app struct {
+	logClient      *zap.Logger
+	deliveryClient deliveryusecase.DeliveryService
+}
+
 func main() {
-	if err := run(); err != nil {
+	app, err := newApp()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = app.run()
+	if err != nil {
 		log.Fatal(err)
 	}
 }
 
-// run — собирает и запускает приложение.
-func run() error {
-	app, err := new()
-	if err != nil {
-		return err
-	}
-	defer func() {
-		_ = app.log.Sync()
-	}()
-
-	return app.start()
-}
-
-type app struct {
-	log            *zap.Logger
-	cliHandler     archiveinboud.Handler
-	deliveryClient deliveryusecase.DeliveryService
-}
-
-func new() (app, error) {
+func newApp() (app, error) {
 	cfg, err := config.Load()
 	if err != nil {
 		return app{}, err
 	}
 
-	// ===loger===
-	log, err := logger.New(logger.Config{
+	// ===logger===
+	logClient, err := logger.New(logger.Config{
 		ServiceName: "save-file-service",
 		Env:         cfg.Env,
 		LogLevel:    cfg.LogLevel,
@@ -63,42 +50,38 @@ func new() (app, error) {
 	}
 
 	// ===архивация===
-	pathArchiveClient := patharchive.NewPathProvider(log)
-	sevenzipClient := sevenzip.NewArchiver(log)
-	archiveClient := archiveusecase.NewArchiveService(log, pathArchiveClient, sevenzipClient)
-	cliHandler := archiveinboud.NewHandler(log, archiveClient)
+	// pathArchiveClient := patharchive.NewPathProvider(log)
+	// sevenzipClient := sevenzip.NewArchiver(log)
+	// archiveClient := archiveusecase.NewArchiveService(log, pathArchiveClient, sevenzipClient)
 
 	// ===доставка===
 	telegramClient, err := deliverytelegram.NewTelegramSender(
-		log, cfg.TelegramToken,
+		logClient, cfg.TelegramToken,
 		cfg.TelegramChatID,
 	)
 	if err != nil {
 		return app{}, err
 	}
 
-	deliveryClient := deliveryusecase.NewDeliveryService(log, telegramClient)
+	deliveryClient := deliveryusecase.NewDeliveryService(logClient, telegramClient)
 
-	log.Info("приложение собралось")
+	logClient.Info("приложение собралось")
 
 	return app{
-		log:            log,
-		cliHandler:     cliHandler,
+		logClient:      logClient,
 		deliveryClient: deliveryClient,
 	}, nil
 }
 
-func (a app) start() error {
-	a.log.Info("приложение запускается")
+func (a app) run() error {
+	a.logClient.Info("приложение запускается")
+
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
 
 	outPath := time.Now().Format("2006-01-02_15-04") + ".7z"
 
-	err := a.cliHandler.Execute(os.Args[1:], outPath)
-	if err != nil {
-		return err
-	}
-
-	err = a.deliveryClient.Deliver(delivery.FileItem{
+	err := a.deliveryClient.Deliver(delivery.FileItem{
 		Path: outPath,
 		Name: outPath,
 	})
@@ -106,11 +89,12 @@ func (a app) start() error {
 		return err
 	}
 
-	ctx := context.Background()
-
 	go a.runWorker(ctx, 1*time.Minute)
 
-	select {}
+	<-ctx.Done()
+	a.logClient.Info("приложение завершается")
+
+	return nil
 }
 
 // runWorker — бесконечный цикл плановой архивации и доставки.
@@ -125,18 +109,14 @@ func (a app) runWorker(ctx context.Context, interval time.Duration) {
 		case <-ticker.C:
 			outPath := time.Now().Format("2006-01-02_15-04") + ".7z"
 
-			if err := a.cliHandler.Execute([]string{}, outPath); err != nil {
-				continue
-			}
-
 			err := a.deliveryClient.Deliver(delivery.FileItem{
 				Path: outPath,
 				Name: outPath,
 			})
 			if err != nil {
-				a.log.Error("ошибка доставки", zap.Error(err))
+				a.logClient.Error("ошибка доставки", zap.Error(err))
 			} else {
-				a.log.Info("плановая задача успешно завершена")
+				a.logClient.Info("плановая задача успешно завершена")
 			}
 		}
 	}
