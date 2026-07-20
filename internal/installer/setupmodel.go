@@ -15,34 +15,21 @@ import (
 // SRP: стили не смешивают цвета, рамки и отступы — каждый за одно.
 
 var (
-	// Gruvbox dark palette
-	gbg0  = lipgloss.Color("#282828") // dark0_hard — фон
-	gbg4  = lipgloss.Color("#7c6f64") // dark4 — тусклый
-	gfg0  = lipgloss.Color("#ebdbb2") // light1 — основной текст
-	gfg4  = lipgloss.Color("#a89984") // gray — приглушённый
+	// Gruvbox dark palette: https://github.com/morhetz/gruvbox
+	// Оставляем только используемые цвета — unused ловит неиспользуемые переменные.
+	gbg0 = lipgloss.Color("#282828") // dark0_hard — фон кнопок.
+	gbg4 = lipgloss.Color("#7c6f64") // dark4 — цвет разделителя.
+	gfg4 = lipgloss.Color("#a89984") // gray — приглушённый текст.
 
-	gRed    = lipgloss.Color("#cc241d")
-	gGreen  = lipgloss.Color("#98971a")
-	gYellow = lipgloss.Color("#d79921")
-	gBlue   = lipgloss.Color("#458588")
-	gPurple = lipgloss.Color("#b16286")
-	gAqua   = lipgloss.Color("#689d6a")
-	gOrange = lipgloss.Color("#d65d0e")
-
-	gBrightRed    = lipgloss.Color("#fb4934")
-	gBrightGreen  = lipgloss.Color("#b8bb26")
-	gBrightYellow = lipgloss.Color("#fabd2f")
-	gBrightBlue   = lipgloss.Color("#83a598")
-	gBrightPurple = lipgloss.Color("#d3869b")
+	gBlue         = lipgloss.Color("#458588")
 	gBrightAqua   = lipgloss.Color("#8ec07c")
-	gBrightOrange = lipgloss.Color("#fe8019")
+	gBrightBlue   = lipgloss.Color("#83a598")
+	gBrightGreen  = lipgloss.Color("#b8bb26")
+	gBrightRed    = lipgloss.Color("#fb4934")
+	gBrightYellow = lipgloss.Color("#fabd2f")
 
-	// accent — основной акцентный цвет (bright aqua — мягкий зелёный)
+	// accent — основной акцентный цвет (bright aqua — мягкий зелёный).
 	accent = gBrightAqua
-
-	titleStyle = lipgloss.NewStyle().
-			Bold(true).
-			Foreground(accent)
 
 	labelStyle = lipgloss.NewStyle().
 			Foreground(gBrightBlue).
@@ -63,46 +50,46 @@ var (
 			Foreground(gBrightGreen).
 			Bold(true)
 
-	// buttonActive — яркая кнопка, когда она выбрана (тёмный текст на акцентном фоне)
+	// buttonActive — яркая кнопка, когда она выбрана (тёмный текст на акцентном фоне).
 	buttonActive = lipgloss.NewStyle().
 			Bold(true).
 			Foreground(gbg0).
 			Background(accent).
 			Padding(0, 2)
 
-	// buttonInactive — тусклая кнопка, когда не выбрана
+	// buttonInactive — тусклая кнопка, когда не выбрана.
 	buttonInactive = lipgloss.NewStyle().
 			Foreground(gfg4).
 			Padding(0, 2)
 
-	// linkStyle — подчёркнутый текст для кликабельных ссылок
+	// linkStyle — подчёркнутый текст для кликабельных ссылок.
 	linkStyle = lipgloss.NewStyle().
 			Foreground(accent).
 			Underline(true)
 
-	// inputBox — рамка вокруг поля ввода (синий акцент)
+	// inputBox — рамка вокруг поля ввода (синий акцент).
 	inputBox = lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
 			BorderForeground(gBlue).
 			Padding(0, 1).
 			Width(62)
 
-	// separator — горизонтальная линия-разделитель (тёмный серый)
+	// separator — горизонтальная линия-разделитель.
 	separator = lipgloss.NewStyle().
 			Foreground(gbg4).
 			Render(strings.Repeat("─", 50))
 
-	// progressDot — закрашенный шаг прогресс-бара
+	// progressDot — закрашенный шаг прогресс-бара.
 	progressDot = lipgloss.NewStyle().
 			Foreground(accent).
 			Render("●")
 
-	// progressEmpty — незакрашенный шаг прогресс-бара
+	// progressEmpty — незакрашенный шаг прогресс-бара.
 	progressEmpty = lipgloss.NewStyle().
 			Foreground(gfg4).
 			Render("○")
 
-	// dialogBox — внешняя рамка всего диалога
+	// dialogBox — внешняя рамка всего диалога.
 	dialogBox = lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
 			BorderForeground(gBlue).
@@ -185,14 +172,14 @@ func NewSetupModel() setupModel {
 	cronInterval.Prompt = "▸ "
 
 	return setupModel{
-		step:           stepToken,
-		tokenInput:     ti,
-		chatIDInput:    ci,
-		timeInput:      cronTime,
-		intervalInput:  cronInterval,
-		cronSettings:   CronSettings{Enabled: false, Time: "02:00", Interval: "daily"},
-		confirmFocus:   0,
-		cronYesNo:      1,
+		step:          stepToken,
+		tokenInput:    ti,
+		chatIDInput:   ci,
+		timeInput:     cronTime,
+		intervalInput: cronInterval,
+		cronSettings:  CronSettings{Enabled: false, Time: "02:00", Interval: "daily"},
+		confirmFocus:  0,
+		cronYesNo:     1,
 	}
 }
 
@@ -214,6 +201,7 @@ func (m setupModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			m.step--
 			m.showError = false
+
 			return m, m.updateFocusState()
 		}
 	case tea.WindowSizeMsg:
@@ -251,6 +239,7 @@ func (m setupModel) View() string {
 
 	// stepDone не участвует в progress bar (это финальный экран)
 	showProgress := m.step != stepDone
+
 	return m.renderDialog(content, showProgress)
 }
 
@@ -272,6 +261,7 @@ func (m *setupModel) updateFocusState() tea.Cmd {
 	case stepCronInterval:
 		return m.intervalInput.Focus()
 	}
+
 	return nil
 }
 
@@ -294,6 +284,7 @@ func (m setupModel) handleStep(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case stepDone:
 		return m, tea.Quit
 	}
+
 	return m, nil
 }
 
@@ -305,15 +296,18 @@ func (m setupModel) updateStepToken(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if m.token == "" {
 			m.showError = true
 			m.errMsg = "Токен не может быть пустым"
+
 			return m, nil
 		}
 		m.showError = false
 		m.step = stepChatID
+
 		return m, m.updateFocusState()
 	}
 
 	var cmd tea.Cmd
 	m.tokenInput, cmd = m.tokenInput.Update(msg)
+
 	return m, cmd
 }
 
@@ -333,7 +327,9 @@ func (m setupModel) viewTokenStep() string {
 	b.WriteString(hintStyle.Render("Где взять?"))
 	b.WriteString("  ")
 	// Сначала стиль (linkStyle), потом гиперссылка — чтобы lipgloss правильно измерил ширину.
-	b.WriteString(hyperlink("https://t.me/BotFather", linkStyle.Render("@BotFather → Открыть в Telegram")))
+	b.WriteString(
+		hyperlink("https://t.me/BotFather", linkStyle.Render("@BotFather → Открыть в Telegram")),
+	)
 
 	b.WriteString("\n")
 	b.WriteString(helpStyle.Render("Создайте бота в @BotFather и скопируйте токен"))
@@ -349,15 +345,18 @@ func (m setupModel) updateStepChatID(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if m.chatID == "" {
 			m.showError = true
 			m.errMsg = "Chat ID не может быть пустым"
+
 			return m, nil
 		}
 		m.showError = false
 		m.step = stepCronAsk
+
 		return m, m.updateFocusState()
 	}
 
 	var cmd tea.Cmd
 	m.chatIDInput, cmd = m.chatIDInput.Update(msg)
+
 	return m, cmd
 }
 
@@ -376,7 +375,12 @@ func (m setupModel) viewChatIDStep() string {
 	b.WriteString("\n\n")
 	b.WriteString(hintStyle.Render("Где взять?"))
 	b.WriteString("  ")
-	b.WriteString(hyperlink("https://t.me/userinfobot", linkStyle.Render("@userinfobot → Открыть в Telegram")))
+	b.WriteString(
+		hyperlink(
+			"https://t.me/userinfobot",
+			linkStyle.Render("@userinfobot → Открыть в Telegram"),
+		),
+	)
 
 	b.WriteString("\n")
 	b.WriteString(helpStyle.Render("Напишите @userinfobot — он пришлёт ваш Chat ID"))
@@ -394,13 +398,16 @@ func (m setupModel) updateStepCronAsk(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "enter":
 			if m.cronYesNo == 0 {
 				m.step = stepCronTime
+
 				return m, m.updateFocusState()
 			}
 			m.cronSettings.Enabled = false
 			m.step = stepConfirm
+
 			return m, nil
 		}
 	}
+
 	return m, nil
 }
 
@@ -436,11 +443,13 @@ func (m setupModel) updateStepCronTime(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.cronSettings.Time = "02:00"
 		}
 		m.step = stepCronInterval
+
 		return m, m.updateFocusState()
 	}
 
 	var cmd tea.Cmd
 	m.timeInput, cmd = m.timeInput.Update(msg)
+
 	return m, cmd
 }
 
@@ -466,11 +475,13 @@ func (m setupModel) updateStepCronInterval(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.cronSettings.Interval = "daily"
 		}
 		m.step = stepConfirm
+
 		return m, nil
 	}
 
 	var cmd tea.Cmd
 	m.intervalInput, cmd = m.intervalInput.Update(msg)
+
 	return m, cmd
 }
 
@@ -481,7 +492,9 @@ func (m setupModel) viewCronIntervalStep() string {
 	b.WriteString("\n\n")
 	b.WriteString(inputBox.Render(m.intervalInput.View()))
 	b.WriteString("\n\n")
-	b.WriteString(helpStyle.Render("daily — каждый день, weekly — раз в неделю, monthly — раз в месяц"))
+	b.WriteString(
+		helpStyle.Render("daily — каждый день, weekly — раз в неделю, monthly — раз в месяц"),
+	)
 
 	return b.String()
 }
@@ -495,13 +508,15 @@ func (m setupModel) updateStepConfirm(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.confirmFocus = 1 - m.confirmFocus
 		case "enter":
 			if m.confirmFocus == 0 {
-				m.save()
-				m.step = stepDone
+				m.save() // внутри устанавливает step = stepDone или показывает ошибку
+
 				return m, nil
 			}
+
 			return m, tea.Quit
 		}
 	}
+
 	return m, nil
 }
 
@@ -553,7 +568,7 @@ func (m setupModel) viewDoneStep() string {
 	b.WriteString("• Файл .env обновлён\n")
 
 	if m.cronSettings.Enabled {
-		b.WriteString(fmt.Sprintf("• Cron: %s (%s)\n", m.cronSettings.Time, m.cronSettings.Interval))
+		fmt.Fprintf(b, "• Cron: %s (%s)\n", m.cronSettings.Time, m.cronSettings.Interval)
 	}
 
 	b.WriteString("\n")
@@ -566,18 +581,32 @@ func (m setupModel) viewDoneStep() string {
 
 // ─── Сохранение ─────────────────────────────────────────────────────────────
 
-func (m setupModel) save() {
-	writeEnvFile(m.token, m.chatID)
+func (m *setupModel) save() {
+	if err := writeEnvFile(m.token, m.chatID); err != nil {
+		m.errMsg = fmt.Sprintf("Ошибка записи .env: %v", err)
+		m.showError = true
+
+		return
+	}
 
 	if m.cronSettings.Enabled {
-		installCronJob(m.cronSettings)
+		if err := installCronJob(m.cronSettings); err != nil {
+			m.errMsg = fmt.Sprintf("Ошибка установки cron: %v", err)
+			m.showError = true
+
+			return
+		}
+	} else {
+		// При повторной установке могли остаться старые записи — чистим.
+		_ = uninstallCronJob()
 	}
+
+	m.step = stepDone
 }
 
 // ─── hyperlink — OSC-8 гиперссылка ────────────────────────────────────────
 // Современные терминалы (iTerm2, Terminal.app, kitty, Windows Terminal)
-// отображают такой текст как кликабельную ссылку.
-// \x1b]8;;URL\x07TEXT\x1b]8;;\x07
+// отображают такой текст как кликабельную ссылку. Формат: \x1b]8;;URL\x07TEXT\x1b]8;;\x07.
 func hyperlink(url, text string) string {
 	return fmt.Sprintf("\x1b]8;;%s\x07%s\x1b]8;;\x07", url, text)
 }
@@ -623,7 +652,7 @@ func (m setupModel) progressBar() string {
 	}
 
 	var dots []string
-	for i := 0; i < totalSteps; i++ {
+	for i := range totalSteps {
 		if i <= current {
 			dots = append(dots, progressDot)
 		} else {
@@ -634,6 +663,7 @@ func (m setupModel) progressBar() string {
 	bar := strings.Join(dots, " ")
 
 	stepLabel := fmt.Sprintf("шаг %d из %d", current+1, totalSteps)
+
 	return helpStyle.Render(bar + "   " + stepLabel)
 }
 
@@ -643,7 +673,12 @@ func (m setupModel) footer() string {
 	parts := []string{"enter — подтвердить", "esc — назад", "ctrl+c — выход"}
 
 	if m.step == stepCronAsk || m.step == stepConfirm {
-		parts = []string{"← → / h l — выбрать", "enter — подтвердить", "esc — назад", "ctrl+c — выход"}
+		parts = []string{
+			"← → / h l — выбрать",
+			"enter — подтвердить",
+			"esc — назад",
+			"ctrl+c — выход",
+		}
 	}
 
 	return helpStyle.Render(strings.Join(parts, "  │  "))

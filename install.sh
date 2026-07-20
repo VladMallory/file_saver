@@ -41,4 +41,6 @@ fi
 
 echo "---"
 echo "Готово! Утилита успешно установлена."
-echo "Запустить её можно командой: $DEST_DIR/$FINAL_NAME"
+echo "Запускаю установщик..."
+echo ""
+exec "$DEST_DIR/$FINAL_NAME"

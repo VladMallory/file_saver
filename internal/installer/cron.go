@@ -16,7 +16,7 @@ func installCronJob(cfg CronSettings) error {
 		if len(parts) == 2 {
 			schedule = fmt.Sprintf("%s %s * * *", parts[1], parts[0])
 		} else {
-			schedule = "0 2 * * *" // fallback: ежедневно в 02:00
+			schedule = "0 2 * * *"
 		}
 	}
 
@@ -25,23 +25,39 @@ func installCronJob(cfg CronSettings) error {
 		return fmt.Errorf("не удалось определить путь к бинарю: %w", err)
 	}
 
-	cronLine := fmt.Sprintf("%s %s run #saveFile", schedule, exePath)
+	cronLine := fmt.Sprintf("%s \"%s\" run #saveFile", schedule, exePath)
 
+	return updateCrontab(cronLine)
+}
+
+// uninstallCronJob удаляет все записи #saveFile из crontab.
+// Вызывается когда пользователь отказался от cron при повторной установке.
+func uninstallCronJob() error {
+	return updateCrontab("") // пустая строка → только удаление старых записей
+}
+
+// updateCrontab читает текущий crontab, удаляет старые записи #saveFile,
+// добавляет новую строку (если не пустая), и пишет обратно.
+func updateCrontab(newLine string) error {
 	currentCmd := exec.Command("crontab", "-l")
 	out, _ := currentCmd.Output()
 
 	existing := strings.TrimSpace(string(out))
-	excisting := splitLinesPreserve(existing)
+	lines := splitLinesPreserve(existing)
 
 	// Удаляем старые записи #saveFile
 	var newLines []string
-	for _, line := range excisting {
+	for _, line := range lines {
 		if !strings.Contains(line, "#saveFile") {
 			newLines = append(newLines, line)
 		}
 	}
 
-	newLines = append(newLines, cronLine)
+	// Добавляем новую запись, если она не пустая
+	if newLine != "" {
+		newLines = append(newLines, newLine)
+	}
+
 	newContent := strings.Join(newLines, "\n") + "\n"
 
 	writeCmd := exec.Command("crontab", "-")
@@ -60,6 +76,7 @@ func splitLinesPreserve(s string) []string {
 	if s == "" {
 		return nil
 	}
+
 	return strings.Split(s, "\n")
 }
 

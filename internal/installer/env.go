@@ -18,5 +18,5 @@ func writeEnvFile(token, chatID string) error {
 
 	content := fmt.Sprintf("TELEGRAM_TOKEN=%s\nTELEGRAM_CHAT_ID=%s\n", token, chatID)
 
-	return os.WriteFile(exePath, []byte(content), 0644)
+	return os.WriteFile(exePath, []byte(content), 0o644)
 }
