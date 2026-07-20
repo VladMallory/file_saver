@@ -1,6 +1,9 @@
 package config
 
 import (
+	"os"
+	"path/filepath"
+
 	"github.com/ilyakaznacheev/cleanenv"
 	"github.com/joho/godotenv"
 )
@@ -15,13 +18,20 @@ type Config struct {
 }
 
 func Load() (*Config, error) {
-	if err := godotenv.Load(); err != nil {
-		return nil, err
+	// 1. Сначала пробуем взять .env из текущей папки (для локальной разработки)
+	_ = godotenv.Load(".env")
+
+	// 2. Если не получилось, пробуем взять .env рядом с бинарником (для продакшена)
+	exePath, err := os.Executable()
+	if err == nil {
+		exeDir := filepath.Dir(exePath)
+		envPath := filepath.Join(exeDir, ".env")
+		_ = godotenv.Load(envPath)
 	}
 
+	// 3. Читаем переменные (из системы или из .env)
 	var cfg Config
-
-	err := cleanenv.ReadEnv(&cfg)
+	err = cleanenv.ReadEnv(&cfg)
 	if err != nil {
 		return nil, err
 	}
