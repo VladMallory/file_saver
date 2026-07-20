@@ -8,7 +8,7 @@ import (
 )
 
 type archiveUseCase interface {
-	Run() error
+	Run(savePathFile string) error
 }
 
 type Handler struct {
@@ -23,7 +23,7 @@ func NewHandler(log *zap.Logger, uc archiveUseCase) Handler {
 	}
 }
 
-func (h Handler) Execute(args []string) error {
+func (h Handler) Execute(args []string, savePathFile string) error {
 	start := time.Now()
 
 	defer func() {
@@ -41,7 +41,7 @@ func (h Handler) Execute(args []string) error {
 		return err
 	}
 
-	if err := h.archiveUseCase.Run(); err != nil {
+	if err := h.archiveUseCase.Run(savePathFile); err != nil {
 		h.log.Error("Ошибка при выполнении архивации", zap.Error(err))
 		return err
 	}

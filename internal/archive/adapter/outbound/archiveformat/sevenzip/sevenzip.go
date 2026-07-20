@@ -22,23 +22,21 @@ func NewArchiver(log *zap.Logger) Archiver {
 	}
 }
 
-func (a Archiver) Run(paths []string) (string, error) {
+func (a Archiver) Run(paths []string, saveFilePath string) (string, error) {
 	if len(paths) == 0 {
 		return "", archivecore.ErrNoPaths
 	}
 
-	outPath := "backup.7z"
-
 	args := []string{
-		"a",         // Создать архив (Add)
-		"-t7z",      // Использовать формат 7z
-		"-m0=lzma2", // Алгоритм сжатия LZMA2
-		"-mx=9",     // Максимальный уровень сжатия (0-9)
-		"-mmt=on",   // Использовать все доступные ядра процессора
-		"-ms=on",    // Solid-архив  лучшее сжатие для набора похожих файлов
-		"-md=256m",  // Размер словаря LZMA2 (256 МБ)
-		"-mfb=273",  // Максимальное количество Fast Bytes (улучшает сжатие)
-		outPath,     // Путь к создаваемому архиву
+		"a",          // Создать архив (Add)
+		"-t7z",       // Использовать формат 7z
+		"-m0=lzma2",  // Алгоритм сжатия LZMA2
+		"-mx=9",      // Максимальный уровень сжатия (0-9)
+		"-mmt=on",    // Использовать все доступные ядра процессора
+		"-ms=on",     // Solid-архив  лучшее сжатие для набора похожих файлов
+		"-md=256m",   // Размер словаря LZMA2 (256 МБ)
+		"-mfb=273",   // Максимальное количество Fast Bytes (улучшает сжатие)
+		saveFilePath, // Путь к создаваемому архиву
 	}
 
 	args = append(args, paths...)
@@ -59,5 +57,5 @@ func (a Archiver) Run(paths []string) (string, error) {
 		}
 	}
 
-	return outPath, nil
+	return saveFilePath, nil
 }

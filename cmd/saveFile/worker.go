@@ -25,15 +25,16 @@ func (a app) runWorker(ctx context.Context, interval time.Duration) {
 		case <-ticker.C:
 			a.log.Info("запуск плановой задачи")
 
-			if err := a.cliHandler.Execute([]string{}); err != nil {
+			outPath := time.Now().Format("2006-01-02_15-04") + ".7z"
+
+			if err := a.cliHandler.Execute([]string{}, outPath); err != nil {
 				a.log.Error("ошибка архивации", zap.Error(err))
 				continue
 			}
 
-			// 2. Вызываем доставку
 			err := a.deliveryClient.Deliver(delivery.FileItem{
-				Path: "backup.7z",
-				Name: "backup.7z",
+				Path: outPath,
+				Name: outPath,
 			})
 			if err != nil {
 				a.log.Error("ошибка доставки", zap.Error(err))

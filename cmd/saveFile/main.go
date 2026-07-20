@@ -85,14 +85,17 @@ func new() (app, error) {
 
 func (a app) run() error {
 	a.log.Info("приложение запускается")
-	err := a.cliHandler.Execute(os.Args[1:])
+
+	outPath := time.Now().Format("2006-01-02_15-04") + ".7z"
+
+	err := a.cliHandler.Execute(os.Args[1:], outPath)
 	if err != nil {
 		return err
 	}
 
 	err = a.deliveryClient.Deliver(delivery.FileItem{
-		Path: "backup.7z",
-		Name: "backup.7z",
+		Path: outPath,
+		Name: outPath,
 	})
 	if err != nil {
 		return err
@@ -100,9 +103,7 @@ func (a app) run() error {
 
 	ctx := context.Background()
 
-	go a.runWorker(ctx, 24*time.Hour)
+	go a.runWorker(ctx, 1*time.Minute)
 
 	select {}
-
-	// return nil
 }

@@ -11,7 +11,7 @@ type PathProvider interface {
 }
 
 type Archiver interface {
-	Run(path []string) (string, error)
+	Run(path []string, savePathFile string) (string, error)
 }
 
 type ArchiveService struct {
@@ -28,7 +28,7 @@ func NewArchiveService(log *zap.Logger, pathProvider PathProvider, archiver Arch
 	}
 }
 
-func (a ArchiveService) Run() error {
+func (a ArchiveService) Run(savePathFile string) error {
 	path, err := a.pathProvider.GetPath()
 	if err != nil {
 		return err
@@ -38,7 +38,7 @@ func (a ArchiveService) Run() error {
 		return archivecore.ErrNoPaths
 	}
 
-	_, err = a.archiver.Run(path)
+	_, err = a.archiver.Run(path, savePathFile)
 	if err != nil {
 		return err
 	}
