@@ -8,6 +8,7 @@ import (
 	"saveFile/cmd/saveFile/flags"
 	"saveFile/internal/archive/adapter/outbound/archiveformat/sevenzip"
 	"saveFile/internal/config"
+	"saveFile/internal/installer"
 	"saveFile/pkg/logger"
 	"syscall"
 	"time"
@@ -19,6 +20,7 @@ import (
 	delivery "saveFile/internal/deliveryArchive/domain"
 	deliveryusecase "saveFile/internal/deliveryArchive/service"
 
+	tea "github.com/charmbracelet/bubbletea"
 	"go.uber.org/zap"
 )
 
@@ -48,6 +50,13 @@ func main() {
 }
 
 func runSetup() {
+	p := tea.NewProgram(
+		installer.NewSetupModel(),
+		tea.WithAltScreen(),
+	)
+	if _, err := p.Run(); err != nil {
+		log.Fatalf("ошибка запуска setup: %v", err)
+	}
 }
 
 func runBackup() {
@@ -134,7 +143,6 @@ func (a app) run() error {
 	return nil
 }
 
-// runWorker — бесконечный цикл плановой архивации и доставки.
 // func (a app) runWorker(ctx context.Context, interval time.Duration) {
 // 	ticker := time.NewTicker(interval)
 // 	defer ticker.Stop()
