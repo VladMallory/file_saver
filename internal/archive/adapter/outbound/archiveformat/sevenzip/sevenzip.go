@@ -48,10 +48,10 @@ func (a Archiver) Run(paths []string, saveFilePath string) (string, error) {
 		// Это не критично — архив создаётся, просто пустой
 		var exitErr *exec.ExitError
 		if errors.As(err, &exitErr) && exitErr.ExitCode() == 1 {
-			a.log.Warn(
-				"7z завершился с предупреждением",
-				zap.ByteString("output", outBytes),
-			)
+			// a.log.Warn(
+			// 	"7z завершился с предупреждением",
+			// 	zap.ByteString("output", outBytes),
+			// )
 		} else {
 			return "", fmt.Errorf("%w: %s", err, outBytes)
 		}

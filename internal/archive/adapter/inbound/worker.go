@@ -38,6 +38,7 @@ func (s *Scheduler) Start(ctx context.Context) {
 		select {
 		case <-ctx.Done():
 			s.log.Info("планировщик остановлен по сигналу")
+
 			return
 
 		case <-ticker.C:

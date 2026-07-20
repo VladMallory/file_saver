@@ -20,7 +20,11 @@ type ArchiveService struct {
 	archiver     Archiver
 }
 
-func NewArchiveService(log *zap.Logger, pathProvider PathProvider, archiver Archiver) ArchiveService {
+func NewArchiveService(
+	log *zap.Logger,
+	pathProvider PathProvider,
+	archiver Archiver,
+) ArchiveService {
 	return ArchiveService{
 		log:          log,
 		pathProvider: pathProvider,

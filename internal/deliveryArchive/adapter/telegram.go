@@ -51,6 +51,7 @@ func (t *TelegramSender) Send(file delivery.FileItem) error {
 
 	if _, err := t.bot.SendDocument(context.Background(), params); err != nil {
 		t.log.Error("ошибка отправки файла в Telegram", zap.Error(err))
+
 		return err
 	}
 

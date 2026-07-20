@@ -43,6 +43,7 @@ func (h Handler) Execute(args []string, savePathFile string) error {
 
 	if err := h.archiveUseCase.Run(savePathFile); err != nil {
 		h.log.Error("Ошибка при выполнении архивации", zap.Error(err))
+
 		return err
 	}
 

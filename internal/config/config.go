@@ -4,12 +4,13 @@ import (
 	"github.com/ilyakaznacheev/cleanenv"
 )
 
+// Config конфигурация.
+// nolint: golines
 type Config struct {
 	TelegramToken  string `env:"TELEGRAM_TOKEN, required"`
 	TelegramChatID string `env:"TELEGRAM_CHAT_ID, required"`
-
-	Env      string `env:"ENV" env-default:"local"`
-	LogLevel string `env:"LOG_LEVEL" env-default:"info"`
+	Env            string `env:"ENV" env-default:"local"`
+	LogLevel       string `env:"LOG_LEVEL" env-default:"info"`
 }
 
 func Load() (*Config, error) {

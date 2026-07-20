@@ -4,39 +4,40 @@ import (
 	"context"
 	"log"
 	"os"
+	"saveFile/internal/archive/adapter/outbound/archiveformat/sevenzip"
+	"saveFile/internal/config"
+	"saveFile/pkg/logger"
 	"time"
 
 	archiveinboud "saveFile/internal/archive/adapter/inbound"
-	"saveFile/internal/archive/adapter/outbound/archiveformat/sevenzip"
+
 	patharchive "saveFile/internal/archive/adapter/outbound/path"
 	archiveusecase "saveFile/internal/archive/service"
-	"saveFile/internal/config"
+
 	deliverytelegram "saveFile/internal/deliveryArchive/adapter"
 	delivery "saveFile/internal/deliveryArchive/domain"
 	deliveryusecase "saveFile/internal/deliveryArchive/service"
-	"saveFile/pkg/logger"
 
 	"go.uber.org/zap"
 )
 
 func main() {
+	if err := run(); err != nil {
+		log.Fatal(err)
+	}
+}
+
+// run — собирает и запускает приложение.
+func run() error {
 	app, err := new()
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
-
-	// Сбрасываем буфер логов перед самым выходом из программы.
-	// Так как логгер теперь живет внутри app, вызываем Sync через поле структуры.
 	defer func() {
-		if app.log != nil {
-			_ = app.log.Sync()
-		}
+		_ = app.log.Sync()
 	}()
 
-	err = app.run()
-	if err != nil {
-		log.Fatal(err)
-	}
+	return app.start()
 }
 
 type app struct {
@@ -67,8 +68,11 @@ func new() (app, error) {
 	archiveClient := archiveusecase.NewArchiveService(log, pathArchiveClient, sevenzipClient)
 	cliHandler := archiveinboud.NewHandler(log, archiveClient)
 
-	//===доставка===
-	telegramClient, err := deliverytelegram.NewTelegramSender(log, cfg.TelegramToken, cfg.TelegramChatID)
+	// ===доставка===
+	telegramClient, err := deliverytelegram.NewTelegramSender(
+		log, cfg.TelegramToken,
+		cfg.TelegramChatID,
+	)
 	if err != nil {
 		return app{}, err
 	}
@@ -76,6 +80,7 @@ func new() (app, error) {
 	deliveryClient := deliveryusecase.NewDeliveryService(log, telegramClient)
 
 	log.Info("приложение собралось")
+
 	return app{
 		log:            log,
 		cliHandler:     cliHandler,
@@ -83,7 +88,7 @@ func new() (app, error) {
 	}, nil
 }
 
-func (a app) run() error {
+func (a app) start() error {
 	a.log.Info("приложение запускается")
 
 	outPath := time.Now().Format("2006-01-02_15-04") + ".7z"
@@ -106,4 +111,33 @@ func (a app) run() error {
 	go a.runWorker(ctx, 1*time.Minute)
 
 	select {}
+}
+
+// runWorker — бесконечный цикл плановой архивации и доставки.
+func (a app) runWorker(ctx context.Context, interval time.Duration) {
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			outPath := time.Now().Format("2006-01-02_15-04") + ".7z"
+
+			if err := a.cliHandler.Execute([]string{}, outPath); err != nil {
+				continue
+			}
+
+			err := a.deliveryClient.Deliver(delivery.FileItem{
+				Path: outPath,
+				Name: outPath,
+			})
+			if err != nil {
+				a.log.Error("ошибка доставки", zap.Error(err))
+			} else {
+				a.log.Info("плановая задача успешно завершена")
+			}
+		}
+	}
 }

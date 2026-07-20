@@ -8,5 +8,6 @@ func NewArchiver() Archiver {
 
 func Archive(path []string) (string, error) {
 	result := ""
+
 	return result, nil
 }
