@@ -1,18 +1,14 @@
 package main
 
 import (
-	"context"
 	"log"
 	"os"
-	"os/signal"
-	"syscall"
-	"time"
-
 	"saveFile/cmd/saveFile/flags"
 	"saveFile/internal/archive/adapter/outbound/archiveformat/sevenzip"
 	"saveFile/internal/config"
 	"saveFile/internal/installer"
 	"saveFile/pkg/logger"
+	"time"
 
 	patharchive "saveFile/internal/archive/adapter/outbound/path"
 	archiveusecase "saveFile/internal/archive/service"
@@ -118,8 +114,8 @@ func newApp() (app, error) {
 func (a app) run() error {
 	a.logClient.Info("приложение запускается")
 
-	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
-	defer stop()
+	// ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	// defer stop()
 
 	outPath := time.Now().Format("2006-01-02_15-04") + ".7z"
 
@@ -138,7 +134,7 @@ func (a app) run() error {
 
 	// go a.runWorker(ctx, 1*time.Minute)
 
-	<-ctx.Done()
+	// <-ctx.Done()
 	a.logClient.Info("приложение завершается")
 
 	return nil
