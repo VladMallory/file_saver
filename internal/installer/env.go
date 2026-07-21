@@ -13,6 +13,7 @@ func envPath() string {
 	if err != nil {
 		return ".env"
 	}
+
 	return filepath.Join(filepath.Dir(exePath), ".env")
 }
 
@@ -33,6 +34,7 @@ func readEnvValue(key string) string {
 			return strings.TrimSpace(parts[1])
 		}
 	}
+
 	return ""
 }
 

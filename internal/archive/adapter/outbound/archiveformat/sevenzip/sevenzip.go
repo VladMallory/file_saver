@@ -19,21 +19,28 @@ type Archiver struct {
 // NewArchiver создаёт архиватор и проверяет наличие 7z.
 // Если 7z не найден и система Linux — автоматически устанавливает p7zip-full через apt.
 func NewArchiver(log *zap.Logger) Archiver {
-	if _, err := exec.LookPath("7z"); err != nil {
-		if runtime.GOOS == "linux" {
-			log.Warn("7z не найден, устанавливаю p7zip-full через apt...")
-			cmd := exec.Command(
-				"/bin/sh", "-c",
-				"apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq p7zip-full",
+	if _, err := exec.LookPath("7z"); err == nil {
+		return Archiver{bin: "7z", log: log}
+	}
+
+	if runtime.GOOS == "linux" {
+		log.Warn("7z не найден, устанавливаю p7zip-full через apt...")
+		cmd := exec.Command(
+			"/bin/sh",
+			"-c",
+			"apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq p7zip-full",
+		)
+		if out, err := cmd.CombinedOutput(); err != nil {
+			log.Error(
+				"не удалось установить p7zip-full",
+				zap.Error(err),
+				zap.ByteString("output", out),
 			)
-			if out, err := cmd.CombinedOutput(); err != nil {
-				log.Error("не удалось установить p7zip-full", zap.Error(err), zap.ByteString("output", out))
-			} else {
-				log.Info("p7zip-full успешно установлен")
-			}
 		} else {
-			log.Warn("7z не найден, установите p7zip-full вручную")
+			log.Info("p7zip-full успешно установлен")
 		}
+	} else {
+		log.Warn("7z не найден, установите p7zip-full вручную")
 	}
 
 	return Archiver{

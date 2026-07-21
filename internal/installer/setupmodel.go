@@ -144,8 +144,8 @@ type setupModel struct {
 	pathFocus    int
 	skipFocus    int // 0 — инпут, 1 — кнопка «Пропустить»
 
-	paths       []string
-	showTemplates bool
+	paths          []string
+	showTemplates  bool
 	templateCursor int
 
 	width  int
@@ -215,6 +215,7 @@ func (m setupModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "esc":
 			if m.step == stepPaths && m.showTemplates {
 				m.showTemplates = false
+
 				return m, nil
 			}
 			if m.step == stepToken {
@@ -326,12 +327,14 @@ func (m setupModel) updateStepToken(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch key.String() {
 		case "left", "right":
 			m.skipFocus = 1 - m.skipFocus
+
 			return m, nil
 		case "enter":
 			if m.skipFocus == 1 {
 				m.showError = false
 				m.step = stepChatID
 				m.skipFocus = 0
+
 				return m, m.updateFocusState()
 			}
 
@@ -339,6 +342,7 @@ func (m setupModel) updateStepToken(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.token == "" {
 				m.showError = true
 				m.errMsg = "Токен не может быть пустым"
+
 				return m, nil
 			}
 			m.showError = false
@@ -399,12 +403,14 @@ func (m setupModel) updateStepChatID(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch key.String() {
 		case "left", "right":
 			m.skipFocus = 1 - m.skipFocus
+
 			return m, nil
 		case "enter":
 			if m.skipFocus == 1 {
 				m.showError = false
 				m.step = stepCronAsk
 				m.skipFocus = 0
+
 				return m, m.updateFocusState()
 			}
 
@@ -412,6 +418,7 @@ func (m setupModel) updateStepChatID(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.chatID == "" {
 				m.showError = true
 				m.errMsg = "Chat ID не может быть пустым"
+
 				return m, nil
 			}
 			m.showError = false
@@ -645,27 +652,30 @@ var pathTemplates = []pathTemplate{
 }
 
 func (m setupModel) updateTemplateSelector(msg tea.Msg) (tea.Model, tea.Cmd) {
-	if key, ok := msg.(tea.KeyMsg); ok {
-		switch key.String() {
-		case "up", "k":
-			if m.templateCursor > 0 {
-				m.templateCursor--
-			}
-		case "down", "j":
-			if m.templateCursor < len(pathTemplates) {
-				m.templateCursor++
-			}
-		case "enter":
-			if m.templateCursor < len(pathTemplates) {
-				t := pathTemplates[m.templateCursor]
-				for _, p := range t.Paths {
-					if !contains(m.paths, p) {
-						m.paths = append(m.paths, p)
-					}
+	key, ok := msg.(tea.KeyMsg)
+	if !ok {
+		return m, nil
+	}
+
+	switch key.String() {
+	case "up", "k":
+		if m.templateCursor > 0 {
+			m.templateCursor--
+		}
+	case "down", "j":
+		if m.templateCursor < len(pathTemplates) {
+			m.templateCursor++
+		}
+	case "enter":
+		if m.templateCursor < len(pathTemplates) {
+			t := pathTemplates[m.templateCursor]
+			for _, p := range t.Paths {
+				if !contains(m.paths, p) {
+					m.paths = append(m.paths, p)
 				}
 			}
-			m.showTemplates = false
 		}
+		m.showTemplates = false
 	}
 
 	return m, nil
@@ -954,6 +964,7 @@ func contains(slice []string, s string) bool {
 			return true
 		}
 	}
+
 	return false
 }
 
