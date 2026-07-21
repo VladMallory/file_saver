@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	archivecore "saveFile/internal/archive/domain"
+
 	"go.uber.org/zap"
 )
 
@@ -29,7 +31,21 @@ func closeHelper(closer io.Closer, err *error) {
 
 // GetPath получает содержимое файла и отдает каждую строку в slice.
 func (p PathProvider) GetPath() (result []string, err error) {
-	file, err := os.Open("path.txt")
+	// Определяем папку рядом с бинарником
+	exePath, err := os.Executable()
+	if err != nil {
+		return nil, archivecore.ErrNoFindFile
+	}
+
+	exePath, err = filepath.EvalSymlinks(exePath)
+	if err != nil {
+		return nil, err
+	}
+
+	appDir := filepath.Dir(exePath)
+	pathFile := filepath.Join(appDir, "path.txt")
+
+	file, err := os.Open(pathFile)
 	if err != nil {
 		return nil, err
 	}

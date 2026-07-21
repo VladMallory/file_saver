@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 )
 
-// GetAppPath возвращает путь к папке приложения
+// GetAppPath возвращает путь к папке приложения.
 func GetAppPath() (string, error) {
 	// Получаем путь к исполняемому файлу
 	execPath, err := os.Executable()
@@ -17,7 +17,7 @@ func GetAppPath() (string, error) {
 	return filepath.Dir(execPath), nil
 }
 
-// GetPathFilePath возвращает полный путь к файлу path.txt
+// GetPathFilePath возвращает полный путь к файлу path.txt.
 func GetPathFilePath() (string, error) {
 	appDir, err := GetAppPath()
 	if err != nil {
@@ -27,18 +27,19 @@ func GetPathFilePath() (string, error) {
 	return filepath.Join(appDir, "path.txt"), nil
 }
 
-// ReadPathFile читает пути из файла path.txt в папке приложения
+// ReadPathFile читает пути из файла path.txt в папке приложения.
 func ReadPathFile() ([]string, error) {
 	provider := NewAppPathProvider()
+
 	return provider.GetPath()
 }
 
-// WritePathFile записывает пути в файл path.txt в папке приложения
+// WritePathFile записывает пути в файл path.txt в папке приложения.
 func WritePathFile(paths []string) error {
 	return writePathsFile(paths)
 }
 
-// PathFileExists проверяет существует ли файл path.txt в папке приложения
+// PathFileExists проверяет существует ли файл path.txt в папке приложения.
 func PathFileExists() bool {
 	pathFilePath, err := GetPathFilePath()
 	if err != nil {
@@ -46,5 +47,6 @@ func PathFileExists() bool {
 	}
 
 	_, err = os.Stat(pathFilePath)
+
 	return err == nil
 }

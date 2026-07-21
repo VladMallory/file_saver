@@ -9,20 +9,20 @@ import (
 	"strings"
 )
 
-// PathProvider интерфейс для чтения путей из файла
+// PathProvider интерфейс для чтения путей из файла.
 type PathProvider interface {
 	GetPath() ([]string, error)
 }
 
-// AppPathProvider реализация PathProvider, которая ищет path.txt в папке приложения
+// AppPathProvider реализация PathProvider, которая ищет path.txt в папке приложения.
 type AppPathProvider struct{}
 
-// NewAppPathProvider создает новый AppPathProvider
+// NewAppPathProvider создает новый AppPathProvider.
 func NewAppPathProvider() *AppPathProvider {
 	return &AppPathProvider{}
 }
 
-// GetPath получает содержимое файла path.txt из папки приложения и отдает каждую строку в slice
+// GetPath получает содержимое файла path.txt из папки приложения и отдает каждую строку в slice.
 func (p *AppPathProvider) GetPath() ([]string, error) {
 	// Получаем путь к файлу path.txt
 	pathFilePath, err := GetPathFilePath()

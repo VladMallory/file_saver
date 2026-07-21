@@ -4,7 +4,7 @@ import (
 	"os"
 )
 
-// EnsurePathFileExists проверяет существует ли файл path.txt в папке приложения, и если нет - создает его
+// EnsurePathFileExists проверяет существует ли файл path.txt в папке приложения, и если нет - создает его.
 func EnsurePathFileExists() error {
 	// Получаем путь к файлу path.txt
 	pathFilePath, err := GetPathFilePath()
@@ -21,8 +21,9 @@ func EnsurePathFileExists() error {
 	return nil
 }
 
-// GetCurrentPathFile возвращает содержимое файла path.txt из папки приложения
+// GetCurrentPathFile возвращает содержимое файла path.txt из папки приложения.
 func GetCurrentPathFile() ([]string, error) {
 	provider := NewAppPathProvider()
+
 	return provider.GetPath()
 }
