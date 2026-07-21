@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"os"
+	"path/filepath"
 	"saveFile/cmd/saveFile/flags"
 	"saveFile/internal/archive/adapter/outbound/archiveformat/sevenzip"
 	"saveFile/internal/config"
@@ -117,9 +118,14 @@ func (a app) run() error {
 	// ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	// defer stop()
 
-	outPath := time.Now().Format("2006-01-02_15-04") + ".7z"
+	exePath, err := os.Executable()
+	if err != nil {
+		return err
+	}
+	appDir := filepath.Dir(exePath)
+	outPath := filepath.Join(appDir, time.Now().Format("2006-01-02_15-04")+".7z")
 
-	err := a.archiveClient.Run(outPath)
+	err = a.archiveClient.Run(outPath)
 	if err != nil {
 		return err
 	}
