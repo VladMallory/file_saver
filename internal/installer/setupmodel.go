@@ -852,7 +852,17 @@ func (m *setupModel) save() {
 		return
 	}
 
-	if err := writeEnvFile(m.token, m.chatID); err != nil {
+	// Если пользователь пропустил шаг — сохраняем старое значение из .env
+	token := m.token
+	chatID := m.chatID
+	if token == "" {
+		token = readEnvValue("TELEGRAM_TOKEN")
+	}
+	if chatID == "" {
+		chatID = readEnvValue("TELEGRAM_CHAT_ID")
+	}
+
+	if err := writeEnvFile(token, chatID); err != nil {
 		m.errMsg = fmt.Sprintf("Ошибка записи .env: %v", err)
 		m.showError = true
 
