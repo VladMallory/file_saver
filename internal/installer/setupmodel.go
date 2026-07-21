@@ -105,11 +105,12 @@ const (
 	stepCronAsk
 	stepCronTime
 	stepCronInterval
+	stepPaths
 	stepConfirm
 	stepDone
 )
 
-const totalSteps = 6 // без учёта stepDone
+const totalSteps = 7 // без учёта stepDone
 
 // ─── CronSettings ────────────────────────────────────────────────────────────
 
@@ -129,6 +130,7 @@ type setupModel struct {
 
 	timeInput     textinput.Model
 	intervalInput textinput.Model
+	pathInput     textinput.Model
 
 	token        string
 	chatID       string
@@ -139,6 +141,9 @@ type setupModel struct {
 
 	confirmFocus int
 	cronYesNo    int
+	pathFocus    int
+
+	paths []string
 
 	width  int
 	height int
@@ -171,15 +176,23 @@ func NewSetupModel() setupModel {
 	cronInterval.Width = 20
 	cronInterval.Prompt = "▸ "
 
+	pathInput := textinput.New()
+	pathInput.Placeholder = "Например: /panel/*"
+	pathInput.CharLimit = 200
+	pathInput.Width = 55
+	pathInput.Prompt = "▸ "
+
 	return setupModel{
 		step:          stepToken,
 		tokenInput:    ti,
 		chatIDInput:   ci,
 		timeInput:     cronTime,
 		intervalInput: cronInterval,
+		pathInput:     pathInput,
 		cronSettings:  CronSettings{Enabled: false, Time: "02:00", Interval: "daily"},
 		confirmFocus:  0,
 		cronYesNo:     1,
+		pathFocus:     0,
 	}
 }
 
@@ -213,34 +226,39 @@ func (m setupModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 // View — главный метод рендеринга.
-// Все шаги собираются через m.renderDialog, который центрирует контент на экране.
 func (m setupModel) View() string {
 	if m.width == 0 || m.height == 0 {
 		return "Загрузка..."
 	}
 
-	var content string
-	switch m.step {
-	case stepToken:
-		content = m.viewTokenStep()
-	case stepChatID:
-		content = m.viewChatIDStep()
-	case stepCronAsk:
-		content = m.viewCronAskStep()
-	case stepCronTime:
-		content = m.viewCronTimeStep()
-	case stepCronInterval:
-		content = m.viewCronIntervalStep()
-	case stepConfirm:
-		content = m.viewConfirmStep()
-	case stepDone:
-		content = m.viewDoneStep()
-	}
-
-	// stepDone не участвует в progress bar (это финальный экран)
 	showProgress := m.step != stepDone
+	content := m.viewContent()
 
 	return m.renderDialog(content, showProgress)
+}
+
+// viewContent — возвращает содержимое для текущего шага.
+func (m setupModel) viewContent() string {
+	switch m.step {
+	case stepToken:
+		return m.viewTokenStep()
+	case stepChatID:
+		return m.viewChatIDStep()
+	case stepCronAsk:
+		return m.viewCronAskStep()
+	case stepCronTime:
+		return m.viewCronTimeStep()
+	case stepCronInterval:
+		return m.viewCronIntervalStep()
+	case stepPaths:
+		return m.viewPathsStep()
+	case stepConfirm:
+		return m.viewConfirmStep()
+	case stepDone:
+		return m.viewDoneStep()
+	default:
+		return ""
+	}
 }
 
 // ─── Фокус ──────────────────────────────────────────────────────────────────
@@ -250,6 +268,7 @@ func (m *setupModel) updateFocusState() tea.Cmd {
 	m.chatIDInput.Blur()
 	m.timeInput.Blur()
 	m.intervalInput.Blur()
+	m.pathInput.Blur()
 
 	switch m.step {
 	case stepToken:
@@ -260,6 +279,8 @@ func (m *setupModel) updateFocusState() tea.Cmd {
 		return m.timeInput.Focus()
 	case stepCronInterval:
 		return m.intervalInput.Focus()
+	case stepPaths:
+		return m.pathInput.Focus()
 	}
 
 	return nil
@@ -279,6 +300,8 @@ func (m setupModel) handleStep(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.updateStepCronTime(msg)
 	case stepCronInterval:
 		return m.updateStepCronInterval(msg)
+	case stepPaths:
+		return m.updateStepPaths(msg)
 	case stepConfirm:
 		return m.updateStepConfirm(msg)
 	case stepDone:
@@ -402,9 +425,9 @@ func (m setupModel) updateStepCronAsk(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, m.updateFocusState()
 			}
 			m.cronSettings.Enabled = false
-			m.step = stepConfirm
+			m.step = stepPaths
 
-			return m, nil
+			return m, m.updateFocusState()
 		}
 	}
 
@@ -474,9 +497,9 @@ func (m setupModel) updateStepCronInterval(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if m.cronSettings.Interval == "" {
 			m.cronSettings.Interval = "daily"
 		}
-		m.step = stepConfirm
+		m.step = stepPaths
 
-		return m, nil
+		return m, m.updateFocusState()
 	}
 
 	var cmd tea.Cmd
@@ -499,7 +522,85 @@ func (m setupModel) viewCronIntervalStep() string {
 	return b.String()
 }
 
-// ─── Шаг 6: Подтверждение ──────────────────────────────────────────────────
+// ─── Шаг 6: Пути для бекапа ─────────────────────────────────────────────────
+
+func (m setupModel) updateStepPaths(msg tea.Msg) (tea.Model, tea.Cmd) {
+	if key, ok := msg.(tea.KeyMsg); ok {
+		switch key.String() {
+		case "left", "right":
+			m.pathFocus = 1 - m.pathFocus
+
+			return m, nil
+
+		case "enter":
+			if m.pathFocus == 1 {
+				m.showError = false
+				m.step = stepConfirm
+
+				return m, nil
+			}
+
+			path := strings.TrimSpace(m.pathInput.Value())
+			if path == "" {
+				m.showError = true
+				m.errMsg = "Путь не может быть пустым"
+
+				return m, nil
+			}
+			m.paths = append(m.paths, path)
+			m.pathInput.SetValue("")
+			m.showError = false
+
+			return m, m.pathInput.Focus()
+		}
+	}
+
+	var cmd tea.Cmd
+	m.pathInput, cmd = m.pathInput.Update(msg)
+
+	return m, cmd
+}
+
+func (m setupModel) viewPathsStep() string {
+	b := new(strings.Builder)
+
+	b.WriteString(labelStyle.Render("Пути для бекапа"))
+	b.WriteString("\n\n")
+	b.WriteString(inputBox.Render(m.pathInput.View()))
+
+	if len(m.paths) > 0 {
+		b.WriteString("\n\n")
+		b.WriteString(hintStyle.Render("Уже добавлены:"))
+		for _, p := range m.paths {
+			b.WriteString("\n  ")
+			b.WriteString(helpStyle.Render("• " + p))
+		}
+	}
+
+	if m.showError {
+		b.WriteString("\n\n")
+		b.WriteString(errorStyle.Render("✗ " + m.errMsg))
+	}
+
+	b.WriteString("\n\n")
+	addBtn := buttonInactive
+	doneBtn := buttonInactive
+	if m.pathFocus == 0 {
+		addBtn = buttonActive
+	} else {
+		doneBtn = buttonActive
+	}
+	b.WriteString(addBtn.Render("+ Добавить"))
+	b.WriteString("  ")
+	b.WriteString(doneBtn.Render("Готово"))
+
+	b.WriteString("\n\n")
+	b.WriteString(helpStyle.Render("Добавьте все нужные пути, затем нажмите «Готово»"))
+
+	return b.String()
+}
+
+// ─── Шаг 7: Подтверждение ──────────────────────────────────────────────────
 
 func (m setupModel) updateStepConfirm(msg tea.Msg) (tea.Model, tea.Cmd) {
 	if key, ok := msg.(tea.KeyMsg); ok {
@@ -558,7 +659,7 @@ func (m setupModel) viewConfirmStep() string {
 	return b.String()
 }
 
-// ─── Шаг 7: Готово ─────────────────────────────────────────────────────────
+// ─── Шаг 8: Готово ─────────────────────────────────────────────────────────
 
 func (m setupModel) viewDoneStep() string {
 	b := new(strings.Builder)
@@ -571,6 +672,8 @@ func (m setupModel) viewDoneStep() string {
 		fmt.Fprintf(b, "• Cron: %s (%s)\n", m.cronSettings.Time, m.cronSettings.Interval)
 	}
 
+	fmt.Fprintf(b, "• Путей для бекапа: %d\n", len(m.paths))
+
 	b.WriteString("\n")
 	b.WriteString(helpStyle.Render("Запустить бекап: ./saveFile run"))
 	b.WriteString("\n")
@@ -582,6 +685,13 @@ func (m setupModel) viewDoneStep() string {
 // ─── Сохранение ─────────────────────────────────────────────────────────────
 
 func (m *setupModel) save() {
+	if err := writePathsFile(m.paths); err != nil {
+		m.errMsg = fmt.Sprintf("Ошибка записи path.txt: %v", err)
+		m.showError = true
+
+		return
+	}
+
 	if err := writeEnvFile(m.token, m.chatID); err != nil {
 		m.errMsg = fmt.Sprintf("Ошибка записи .env: %v", err)
 		m.showError = true
@@ -672,7 +782,15 @@ func (m setupModel) progressBar() string {
 func (m setupModel) footer() string {
 	parts := []string{"enter — подтвердить", "esc — назад", "ctrl+c — выход"}
 
-	if m.step == stepCronAsk || m.step == stepConfirm {
+	switch m.step {
+	case stepPaths:
+		parts = []string{
+			"enter — добавить",
+			"← → — переключить",
+			"esc — назад",
+			"ctrl+c — выход",
+		}
+	case stepCronAsk, stepConfirm:
 		parts = []string{
 			"← → / h l — выбрать",
 			"enter — подтвердить",

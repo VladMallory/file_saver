@@ -5,13 +5,14 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"syscall"
+	"time"
+
 	"saveFile/cmd/saveFile/flags"
 	"saveFile/internal/archive/adapter/outbound/archiveformat/sevenzip"
 	"saveFile/internal/config"
 	"saveFile/internal/installer"
 	"saveFile/pkg/logger"
-	"syscall"
-	"time"
 
 	patharchive "saveFile/internal/archive/adapter/outbound/path"
 	archiveusecase "saveFile/internal/archive/service"
