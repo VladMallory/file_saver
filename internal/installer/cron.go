@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 )
 
@@ -25,9 +26,16 @@ func installCronJob(cfg CronSettings) error {
 		return fmt.Errorf("не удалось определить путь к бинарю: %w", err)
 	}
 
-	cronLine := fmt.Sprintf("%s \"%s\" run #saveFile", schedule, exePath)
+	appDir := filepath.Dir(exePath)
+	logPath := filepath.Join(appDir, "backup.log")
+	cronLine := fmt.Sprintf("%s \"%s\" run >> %s 2>&1 #saveFile", schedule, exePath, logPath)
 
-	return updateCrontab(cronLine)
+	err = updateCrontab(cronLine)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // uninstallCronJob удаляет все записи #saveFile из crontab.

@@ -47,7 +47,10 @@ func (p PathProvider) GetPath() (result []string, err error) {
 
 	file, err := os.Open(pathFile)
 	if err != nil {
-		return nil, err
+		file, err = os.Open("path.txt")
+		if err != nil {
+			return nil, err
+		}
 	}
 	defer closeHelper(file, &err)
 
