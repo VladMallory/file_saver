@@ -142,8 +142,11 @@ type setupModel struct {
 	confirmFocus int
 	cronYesNo    int
 	pathFocus    int
+	skipFocus    int // 0 — инпут, 1 — кнопка «Пропустить»
 
-	paths []string
+	paths       []string
+	showTemplates bool
+	templateCursor int
 
 	width  int
 	height int
@@ -193,6 +196,7 @@ func NewSetupModel() setupModel {
 		confirmFocus:  0,
 		cronYesNo:     1,
 		pathFocus:     0,
+		skipFocus:     0,
 	}
 }
 
@@ -209,6 +213,10 @@ func (m setupModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "ctrl+c":
 			return m, tea.Quit
 		case "esc":
+			if m.step == stepPaths && m.showTemplates {
+				m.showTemplates = false
+				return m, nil
+			}
 			if m.step == stepToken {
 				return m, tea.Quit
 			}
@@ -314,18 +322,31 @@ func (m setupModel) handleStep(msg tea.Msg) (tea.Model, tea.Cmd) {
 // ─── Шаг 1: Токен ───────────────────────────────────────────────────────────
 
 func (m setupModel) updateStepToken(msg tea.Msg) (tea.Model, tea.Cmd) {
-	if key, ok := msg.(tea.KeyMsg); ok && key.String() == "enter" {
-		m.token = strings.TrimSpace(m.tokenInput.Value())
-		if m.token == "" {
-			m.showError = true
-			m.errMsg = "Токен не может быть пустым"
-
+	if key, ok := msg.(tea.KeyMsg); ok {
+		switch key.String() {
+		case "left", "right":
+			m.skipFocus = 1 - m.skipFocus
 			return m, nil
-		}
-		m.showError = false
-		m.step = stepChatID
+		case "enter":
+			if m.skipFocus == 1 {
+				m.showError = false
+				m.step = stepChatID
+				m.skipFocus = 0
+				return m, m.updateFocusState()
+			}
 
-		return m, m.updateFocusState()
+			m.token = strings.TrimSpace(m.tokenInput.Value())
+			if m.token == "" {
+				m.showError = true
+				m.errMsg = "Токен не может быть пустым"
+				return m, nil
+			}
+			m.showError = false
+			m.step = stepChatID
+			m.skipFocus = 0
+
+			return m, m.updateFocusState()
+		}
 	}
 
 	var cmd tea.Cmd
@@ -349,7 +370,6 @@ func (m setupModel) viewTokenStep() string {
 	b.WriteString("\n\n")
 	b.WriteString(hintStyle.Render("Где взять?"))
 	b.WriteString("  ")
-	// Сначала стиль (linkStyle), потом гиперссылка — чтобы lipgloss правильно измерил ширину.
 	b.WriteString(
 		hyperlink("https://t.me/BotFather", linkStyle.Render("@BotFather → Открыть в Telegram")),
 	)
@@ -357,24 +377,49 @@ func (m setupModel) viewTokenStep() string {
 	b.WriteString("\n")
 	b.WriteString(helpStyle.Render("Создайте бота в @BotFather и скопируйте токен"))
 
+	b.WriteString("\n\n")
+	inputBtn := buttonInactive
+	skipBtn := buttonInactive
+	if m.skipFocus == 0 {
+		inputBtn = buttonActive
+	} else {
+		skipBtn = buttonActive
+	}
+	b.WriteString(inputBtn.Render("✎ Ввести"))
+	b.WriteString("  ")
+	b.WriteString(skipBtn.Render("Пропустить"))
+
 	return b.String()
 }
 
 // ─── Шаг 2: Chat ID ─────────────────────────────────────────────────────────
 
 func (m setupModel) updateStepChatID(msg tea.Msg) (tea.Model, tea.Cmd) {
-	if key, ok := msg.(tea.KeyMsg); ok && key.String() == "enter" {
-		m.chatID = strings.TrimSpace(m.chatIDInput.Value())
-		if m.chatID == "" {
-			m.showError = true
-			m.errMsg = "Chat ID не может быть пустым"
-
+	if key, ok := msg.(tea.KeyMsg); ok {
+		switch key.String() {
+		case "left", "right":
+			m.skipFocus = 1 - m.skipFocus
 			return m, nil
-		}
-		m.showError = false
-		m.step = stepCronAsk
+		case "enter":
+			if m.skipFocus == 1 {
+				m.showError = false
+				m.step = stepCronAsk
+				m.skipFocus = 0
+				return m, m.updateFocusState()
+			}
 
-		return m, m.updateFocusState()
+			m.chatID = strings.TrimSpace(m.chatIDInput.Value())
+			if m.chatID == "" {
+				m.showError = true
+				m.errMsg = "Chat ID не может быть пустым"
+				return m, nil
+			}
+			m.showError = false
+			m.step = stepCronAsk
+			m.skipFocus = 0
+
+			return m, m.updateFocusState()
+		}
 	}
 
 	var cmd tea.Cmd
@@ -407,6 +452,18 @@ func (m setupModel) viewChatIDStep() string {
 
 	b.WriteString("\n")
 	b.WriteString(helpStyle.Render("Напишите @userinfobot — он пришлёт ваш Chat ID"))
+
+	b.WriteString("\n\n")
+	inputBtn := buttonInactive
+	skipBtn := buttonInactive
+	if m.skipFocus == 0 {
+		inputBtn = buttonActive
+	} else {
+		skipBtn = buttonActive
+	}
+	b.WriteString(inputBtn.Render("✎ Ввести"))
+	b.WriteString("  ")
+	b.WriteString(skipBtn.Render("Пропустить"))
 
 	return b.String()
 }
@@ -525,17 +582,34 @@ func (m setupModel) viewCronIntervalStep() string {
 // ─── Шаг 6: Пути для бекапа ─────────────────────────────────────────────────
 
 func (m setupModel) updateStepPaths(msg tea.Msg) (tea.Model, tea.Cmd) {
+	if m.showTemplates {
+		return m.updateTemplateSelector(msg)
+	}
+
 	if key, ok := msg.(tea.KeyMsg); ok {
 		switch key.String() {
-		case "left", "right":
-			m.pathFocus = 1 - m.pathFocus
+		case "left":
+			m.pathFocus = (m.pathFocus - 1 + 3) % 3
+
+			return m, nil
+
+		case "right":
+			m.pathFocus = (m.pathFocus + 1) % 3
 
 			return m, nil
 
 		case "enter":
-			if m.pathFocus == 1 {
+			if m.pathFocus == 2 {
 				m.showError = false
 				m.step = stepConfirm
+
+				return m, nil
+			}
+
+			if m.pathFocus == 1 {
+				m.showTemplates = true
+				m.templateCursor = 0
+				m.showError = false
 
 				return m, nil
 			}
@@ -561,7 +635,47 @@ func (m setupModel) updateStepPaths(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
+type pathTemplate struct {
+	Name  string
+	Paths []string
+}
+
+var pathTemplates = []pathTemplate{
+	{Name: "remnawave", Paths: []string{"/opt/remnawave/*", "/root/remnawave_backups/*"}},
+}
+
+func (m setupModel) updateTemplateSelector(msg tea.Msg) (tea.Model, tea.Cmd) {
+	if key, ok := msg.(tea.KeyMsg); ok {
+		switch key.String() {
+		case "up", "k":
+			if m.templateCursor > 0 {
+				m.templateCursor--
+			}
+		case "down", "j":
+			if m.templateCursor < len(pathTemplates) {
+				m.templateCursor++
+			}
+		case "enter":
+			if m.templateCursor < len(pathTemplates) {
+				t := pathTemplates[m.templateCursor]
+				for _, p := range t.Paths {
+					if !contains(m.paths, p) {
+						m.paths = append(m.paths, p)
+					}
+				}
+			}
+			m.showTemplates = false
+		}
+	}
+
+	return m, nil
+}
+
 func (m setupModel) viewPathsStep() string {
+	if m.showTemplates {
+		return m.viewTemplateSelector()
+	}
+
 	b := new(strings.Builder)
 
 	b.WriteString(labelStyle.Render("Пути для бекапа"))
@@ -584,18 +698,64 @@ func (m setupModel) viewPathsStep() string {
 
 	b.WriteString("\n\n")
 	addBtn := buttonInactive
+	tmplBtn := buttonInactive
 	doneBtn := buttonInactive
-	if m.pathFocus == 0 {
+	switch m.pathFocus {
+	case 0:
 		addBtn = buttonActive
-	} else {
+	case 1:
+		tmplBtn = buttonActive
+	case 2:
 		doneBtn = buttonActive
 	}
 	b.WriteString(addBtn.Render("+ Добавить"))
+	b.WriteString("  ")
+	b.WriteString(tmplBtn.Render("Шаблоны"))
 	b.WriteString("  ")
 	b.WriteString(doneBtn.Render("Готово"))
 
 	b.WriteString("\n\n")
 	b.WriteString(helpStyle.Render("Добавьте все нужные пути, затем нажмите «Готово»"))
+
+	return b.String()
+}
+
+func (m setupModel) viewTemplateSelector() string {
+	b := new(strings.Builder)
+
+	b.WriteString(labelStyle.Render("Выберите шаблон"))
+	b.WriteString("\n\n")
+
+	var listItems []string
+	for i, t := range pathTemplates {
+		cursor := "  "
+		style := helpStyle
+		if i == m.templateCursor {
+			cursor = "▸ "
+			style = labelStyle
+		}
+		listItems = append(listItems, style.Render(cursor+t.Name))
+	}
+
+	listBox := lipgloss.NewStyle().
+		Border(lipgloss.NormalBorder()).
+		BorderForeground(gfg4).
+		Padding(0, 1).
+		Width(40).
+		Render(strings.Join(listItems, "\n"))
+
+	b.WriteString(listBox)
+
+	b.WriteString("\n\n")
+
+	// Кнопка «Назад» — всегда последняя в списке
+	cursor := "  "
+	btnStyle := buttonInactive
+	if m.templateCursor == len(pathTemplates) {
+		cursor = "▸ "
+		btnStyle = buttonActive
+	}
+	b.WriteString(btnStyle.Render(cursor + "← Назад"))
 
 	return b.String()
 }
@@ -777,12 +937,40 @@ func (m setupModel) progressBar() string {
 	return helpStyle.Render(bar + "   " + stepLabel)
 }
 
+// contains — проверяет, есть ли строка в срезе.
+func contains(slice []string, s string) bool {
+	for _, v := range slice {
+		if v == s {
+			return true
+		}
+	}
+	return false
+}
+
 // ─── footer — подсказки по управлению ──────────────────────────────────────
 
 func (m setupModel) footer() string {
 	parts := []string{"enter — подтвердить", "esc — назад", "ctrl+c — выход"}
 
+	if m.step == stepPaths && m.showTemplates {
+		parts = []string{
+			"↑ ↓ — выбрать",
+			"enter — подтвердить",
+			"esc — назад",
+			"ctrl+c — выход",
+		}
+
+		return helpStyle.Render(strings.Join(parts, "  │  "))
+	}
+
 	switch m.step {
+	case stepToken, stepChatID:
+		parts = []string{
+			"← → — переключить",
+			"enter — подтвердить",
+			"esc — назад",
+			"ctrl+c — выход",
+		}
 	case stepPaths:
 		parts = []string{
 			"enter — добавить",
