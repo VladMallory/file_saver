@@ -1,10 +1,10 @@
 package main
 
 import (
+	"flag"
 	"log"
 	"os"
 	"path/filepath"
-	"saveFile/cmd/saveFile/flags"
 	"saveFile/internal/archive/adapter/outbound/archiveformat/sevenzip"
 	"saveFile/internal/config"
 	"saveFile/internal/installer"
@@ -18,7 +18,6 @@ import (
 	delivery "saveFile/internal/deliveryArchive/domain"
 	deliveryusecase "saveFile/internal/deliveryArchive/service"
 
-	tea "github.com/charmbracelet/bubbletea"
 	"go.uber.org/zap"
 )
 
@@ -29,36 +28,21 @@ type app struct {
 }
 
 func main() {
-	if len(os.Args) < 2 {
-		runSetup()
+	setupFlag := flag.Bool(
+		"setup",
+		false,
+		"Запустить интерактивную настройку конфигурации",
+	)
+	flag.Parse()
+
+	if *setupFlag {
+		if err := installer.Run(); err != nil {
+			log.Fatalf("Ошибка настройки: %v", err)
+		}
+		log.Println("✔ Настройка успешно завершена! Теперь можно запускать программу без флагов.")
 
 		return
 	}
-
-	subcommand := os.Args[1]
-
-	switch subcommand {
-	case "setup", "init":
-		runSetup()
-	case "run":
-		runBackup()
-	default:
-		log.Fatal("неизвестная команда, введите ./file-saver")
-	}
-}
-
-func runSetup() {
-	p := tea.NewProgram(
-		installer.NewSetupModel(),
-		tea.WithAltScreen(),
-	)
-	if _, err := p.Run(); err != nil {
-		log.Fatalf("ошибка запуска setup: %v", err)
-	}
-}
-
-func runBackup() {
-	_ = flags.ParseRun()
 
 	app, err := newApp()
 	if err != nil {
