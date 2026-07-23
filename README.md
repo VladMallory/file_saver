@@ -3,7 +3,7 @@
 ```bash
 curl -s https://raw.githubusercontent.com/VladMallory/file_saver/main/install.sh | bash
 ```
-Дальше только если хотите вручную 
+На этом все. Дальше можно не читать, если поставили через установщик
 
 ---
 ## Ручная настройка
