@@ -44,15 +44,15 @@ if [ "$(uname -s)" = "Linux" ] && ! command -v 7z &>/dev/null; then
     echo "Устанавливаю p7zip-full (архиватор 7z) в фоновом режиме..."
     if [ "$(id -u)" -eq 0 ]; then
         DEBIAN_FRONTEND=noninteractive apt-get update -qq && \
-        DEBIAN_FRONTEND=noninteractive apt-get install -y -qq p7zip-full > /dev/null 2>&1 &
+        DEBIAN_FRONTEND=noninteractive apt-get install -y -qq p7zip-full
     else
         sudo DEBIAN_FRONTEND=noninteractive apt-get update -qq && \
-        sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq p7zip-full > /dev/null 2>&1 &
+        sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq p7zip-full
     fi
 fi
 
 echo "---"
 echo "Готово! Утилита успешно установлена."
-echo "Запускаю установщик..."
+echo "Запускаю с флагом --run..."
 echo ""
-exec "$DEST_DIR/$FINAL_NAME"
+exec "$DEST_DIR/$FINAL_NAME" --run
