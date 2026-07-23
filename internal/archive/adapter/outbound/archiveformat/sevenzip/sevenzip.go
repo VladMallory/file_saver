@@ -84,5 +84,10 @@ func (a Archiver) Run(paths []string, saveFilePath string) (string, error) {
 		}
 	}
 
+	a.log.Info(
+		"файл успешно заархивирован",
+		zap.String("file", saveFilePath),
+	)
+
 	return saveFilePath, nil
 }

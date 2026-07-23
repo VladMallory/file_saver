@@ -1,7 +1,6 @@
 package main
 
 import (
-	"flag"
 	"log"
 	"os"
 	"path/filepath"
@@ -28,31 +27,26 @@ type app struct {
 }
 
 func main() {
-	setupFlag := flag.Bool(
-		"setup",
-		false,
-		"Запустить интерактивную настройку конфигурации",
-	)
-	flag.Parse()
-
-	if *setupFlag {
-		if err := installer.Run(); err != nil {
-			log.Fatalf("Ошибка настройки: %v", err)
+	if len(os.Args) > 1 && os.Args[1] == "run" {
+		app, err := newApp()
+		if err != nil {
+			log.Fatal(err)
 		}
-		log.Println("✔ Настройка успешно завершена! Теперь можно запускать программу без флагов.")
+
+		err = app.run()
+		if err != nil {
+			log.Fatal(err)
+		}
 
 		return
 	}
 
-	app, err := newApp()
-	if err != nil {
-		log.Fatal(err)
+	if err := installer.Run(); err != nil {
+		log.Fatalf("Ошибка настройки: %v", err)
 	}
-
-	err = app.run()
-	if err != nil {
-		log.Fatal(err)
-	}
+	log.Println(
+		"✔ Настройка успешно завершена! Теперь можно запускать программу без аргументов.",
+	)
 }
 
 func newApp() (app, error) {

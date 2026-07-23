@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -31,6 +32,23 @@ func Run() error {
 		return err
 	}
 
+	var addCron bool
+
+	err = huh.NewConfirm().
+		Title("Добавить задачу в cron").
+		Description("Запуск каждый день в 04:00").
+		Value(&addCron).
+		Run()
+	if err != nil {
+		return err
+	}
+
+	if addCron {
+		if err := setupCron(exePath); err != nil {
+			return err
+		}
+	}
+
 	_, _ = fmt.Fprintln(os.Stdout, "\n🎉 Настройка успешно завершена!")
 	_, _ = fmt.Fprintf(
 		os.Stdout,
@@ -41,19 +59,22 @@ func Run() error {
 	return nil
 }
 
+const da = "Берется из @BotFather. Нужно будет создать бота, или если уже есть, " +
+	"взять токен из существующего -> /mybots -> имя бота -> API TOKEN -> скопировать и вставить сюда"
+
 func collectTelegramConfig() (string, string, error) {
 	var token, chatID string
 
 	form := huh.NewForm(
 		huh.NewGroup(
 			huh.NewInput().
-				Title("телеграм бот токен").
-				Description("вставьте токен вашего бота от t.me/BotFather").
+				Title("Телеграм бот токен").
+				Description(da).
 				Value(&token),
 
 			huh.NewInput().
 				Title("Telegram Chat ID").
-				Description("Введите ID чата или пользователя для отправки бэкапов").
+				Description("Берется из @Getmyid_bot. Вроде бы не требует подписку и не показывает рекламу").
 				Value(&chatID),
 		),
 	)
@@ -114,6 +135,21 @@ func saveFiles(appDir, token, chatID string, paths []string) error {
 
 	if err := os.WriteFile(pathFilePath, []byte(pathContent), 0o600); err != nil {
 		return fmt.Errorf("ошибка сохранения %s: %w", pathFilePath, err)
+	}
+
+	return nil
+}
+
+func setupCron(exePath string) error {
+	cronLine := fmt.Sprintf("0 4 * * * %s run\n", exePath)
+	cmd := exec.Command(
+		"sh", "-c",
+		fmt.Sprintf("(crontab -l 2>/dev/null; echo '%s') | crontab -",
+			cronLine),
+	)
+
+	if out, err := cmd.CombinedOutput(); err != nil {
+		return fmt.Errorf("ошибка добавления cron: %w\n%s", err, out)
 	}
 
 	return nil
